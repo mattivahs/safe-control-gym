@@ -53,3 +53,7 @@ register(idx='rap',
 register(idx='pid_rl',
          entry_point='safe_control_gym.controllers.pid_rl.pid_rl:PIDRL',
          config_entry_point='safe_control_gym.controllers.pid_rl:pid_rl.yaml')
+
+register(idx='cem',
+         entry_point='safe_control_gym.controllers.cem.cem:CEMRL',
+         config_entry_point='safe_control_gym.controllers.cem:cem.yaml')
