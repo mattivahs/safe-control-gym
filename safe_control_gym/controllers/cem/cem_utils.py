@@ -389,6 +389,38 @@ class Drone2DFull(nn.Module):
                                          torch.ones((x.shape[0], 1)).to(device) * (self.L / self.Iyy / np.sqrt(2))), dim=-1)
 
         return f_prior, g_prior
+
+    def get_f(self, x):
+        f_prior = torch.zeros_like(x).to(device)
+        f_prior[..., :2] = x[..., 4:6]
+        f_prior[..., 2:3] = x[..., 3:4] * x[..., 6:7]
+        f_prior[..., 3:4] = - x[..., 2:3] * x[..., 6:7]
+        f_prior[..., 5:6] = - self.g
+
+        x_f = x
+        for layer in self.mlps_f:
+            x_f = F.leaky_relu(layer.to(device)(x_f))
+
+        return f_prior + self.out_head_f.to(device)(x_f)
+
+    def get_g(self, x):
+        g_prior = torch.zeros((x.shape[0], 7, 2)).to(device)
+
+        g_prior[..., 4:, 0] = torch.cat((x[..., 2:3] / self.m,
+                                         x[..., 3:4] / self.m,
+                                         torch.ones((x.shape[0], 1)).to(device) * (- self.L / self.Iyy / np.sqrt(2))),
+                                        dim=-1)
+
+        g_prior[..., 4:, 1] = torch.cat((x[..., 2:3] / self.m,
+                                         x[..., 3:4] / self.m,
+                                         torch.ones((x.shape[0], 1)).to(device) * (self.L / self.Iyy / np.sqrt(2))),
+                                        dim=-1)
+        x_g = x
+        for layer in self.mlps_g:
+            x_g = F.leaky_relu(layer.to(device)(x_g))
+
+        return g_prior + self.out_head_g.to(device)(x_g).reshape((7, 2))
+
     def forward(self, x, act):
         if len(x.shape) == 1:
             x = x.unsqueeze(0)
