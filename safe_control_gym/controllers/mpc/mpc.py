@@ -4,6 +4,7 @@ from copy import deepcopy
 
 import casadi as cs
 import numpy as np
+import time
 
 from safe_control_gym.controllers.base_controller import BaseController
 from safe_control_gym.controllers.mpc.mpc_utils import (compute_discrete_lqr_gain_from_cont_linear_system,
@@ -237,8 +238,8 @@ class MPC(BaseController):
 
         opti.minimize(cost)
         # Create solver (IPOPT solver in this version)
-        # opts = {'ipopt.print_level': 0, 'ipopt.sb': 'yes', 'print_time': 0}
-        opts = {'expand': True}
+        opts = {'ipopt.print_level': 0, 'ipopt.sb': 'yes', 'print_time': 0}
+        # opts = {'expand': True}
         opti.solver('ipopt', opts)
         self.opti_dict = {
             'opti': opti,
@@ -282,6 +283,9 @@ class MPC(BaseController):
         #    opti.set_initial(x_var, x_guess)
         #    opti.set_initial(u_var, u_guess) # Initial guess for optimization problem.
         # elif self.warmstart and self.x_prev is not None and self.u_prev is not None:
+        if obs[0] > 0.3 or obs[0] < -0.3 or obs[2] > 1.4 or obs[2] < 0.6:
+            print(obs)
+        start = time.time()
         if self.warmstart and self.x_prev is not None and self.u_prev is not None:
             # shift previous solutions by 1 step
             x_guess = deepcopy(self.x_prev)
@@ -292,13 +296,17 @@ class MPC(BaseController):
             opti.set_initial(u_var, u_guess)
         # Solve the optimization problem.
         sol = opti.solve()
+
         x_val, u_val = sol.value(x_var), sol.value(u_var)
+        t_comp = time.time() - start
+        print(t_comp)
+        self.results_dict['t_wall'].append(t_comp)
         self.x_prev = x_val
         self.u_prev = u_val
         self.results_dict['horizon_states'].append(deepcopy(self.x_prev))
         self.results_dict['horizon_inputs'].append(deepcopy(self.u_prev))
         self.results_dict['goal_states'].append(deepcopy(goal_states))
-        self.results_dict['t_wall'].append(opti.stats()['t_wall_total'])
+        # self.results_dict['t_wall'].append(opti.stats()['t_wall_total'])
         # Take the first action from the solved action sequence.
         if u_val.ndim > 1:
             action = u_val[:, 0]

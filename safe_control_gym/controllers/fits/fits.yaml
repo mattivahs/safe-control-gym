@@ -1,0 +1,13 @@
+# OACIS args
+horizon: 50
+trajectory_discretization: 50
+alpha_1: 5
+alpha_2: 10
+
+warmstart: True
+soft_constraints: False
+constraint_tol: 1.0e-6
+
+# Runner args
+deque_size: 10
+eval_batch_size: 10

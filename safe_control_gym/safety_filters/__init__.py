@@ -13,3 +13,11 @@ register(idx='cbf',
 register(idx='cbf_nn',
          entry_point='safe_control_gym.safety_filters.cbf.cbf_nn:CBF_NN',
          config_entry_point='safe_control_gym.safety_filters.cbf:cbf_nn.yaml')
+
+register(idx='cbfCP',
+         entry_point='safe_control_gym.safety_filters.cbfCP.cbfCP:CBF',
+         config_entry_point='safe_control_gym.safety_filters.cbfCP:cbfCP.yaml')
+
+register(idx='vanillaCBF',
+         entry_point='safe_control_gym.safety_filters.vanillaCBF.vanillaCBF:CBF',
+         config_entry_point='safe_control_gym.safety_filters.vanillaCBF:vanillaCBF.yaml')

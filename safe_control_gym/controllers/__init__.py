@@ -57,3 +57,11 @@ register(idx='pid_rl',
 register(idx='cem',
          entry_point='safe_control_gym.controllers.cem.cem:CEMRL',
          config_entry_point='safe_control_gym.controllers.cem:cem.yaml')
+
+register(idx='neuralmpc',
+         entry_point='safe_control_gym.controllers.neuralmpc.neuralmpc:NeuralMPC',
+         config_entry_point='safe_control_gym.controllers.neuralmpc:neuralmpc.yaml')
+
+register(idx='fits',
+         entry_point='safe_control_gym.controllers.fits.fits:FITS',
+         config_entry_point='safe_control_gym.controllers.fits:fits.yaml')

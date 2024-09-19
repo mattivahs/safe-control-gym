@@ -139,10 +139,10 @@ class BaseAviary(BenchmarkEnv):
         if gui:
             # With debug GUI.
             self.PYB_CLIENT = p.connect(p.GUI)  # p.connect(p.GUI, options='--opengl2')
-            p.resetDebugVisualizerCamera(cameraDistance=3,
-                                         cameraYaw=-30,
-                                         cameraPitch=-30,
-                                         cameraTargetPosition=[0, 0, 0],
+            p.resetDebugVisualizerCamera(cameraDistance=1.3,
+                                         cameraYaw=0,
+                                         cameraPitch=-20,
+                                         cameraTargetPosition=[0, 0, 1],
                                          physicsClientId=self.PYB_CLIENT)
             ret = p.getDebugVisualizerCamera(physicsClientId=self.PYB_CLIENT)
             if verbose:

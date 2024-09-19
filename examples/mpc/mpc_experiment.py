@@ -8,14 +8,17 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import FormatStrFormatter
+import matplotlib.patches as patches
 
 from safe_control_gym.envs.benchmark_env import Task
 from safe_control_gym.experiments.base_experiment import BaseExperiment
 from safe_control_gym.utils.configuration import ConfigFactory
 from safe_control_gym.utils.registration import make
 
+from matplotlib.animation import FuncAnimation, PillowWriter
 
-def run(gui=True, n_episodes=1, n_steps=None, save_data=False):
+
+def run(gui=True, n_episodes=1, n_steps=None, save_data=True):
     '''The main function running MPC and Linear MPC experiments.
 
     Args:
@@ -63,6 +66,8 @@ def run(gui=True, n_episodes=1, n_steps=None, save_data=False):
 
         if gui:
             post_analysis(trajs_data['obs'][0], trajs_data['action'][0], ctrl.env)
+            generate_trajectory_gif(trajs_data['obs'][0], trajs_data['controller_data'][0]['horizon_states'][0],
+                                    trajs_data['controller_data'][0]['goal_states'][0], ctrl.env)
 
         # Close environments
         static_env.close()
@@ -78,7 +83,7 @@ def run(gui=True, n_episodes=1, n_steps=None, save_data=False):
     all_trajs = dict(all_trajs)
 
     if save_data:
-        results = {'trajs_data': all_trajs, 'metrics': metrics}
+        results = {'trajs_data': all_trajs, 'metrics': metrics, 'reference': ctrl.env.X_GOAL}
         path_dir = os.path.dirname('./temp-data/')
         os.makedirs(path_dir, exist_ok=True)
         with open(f'./temp-data/{config.algo}_data_{config.task}_{config.task_config.task}.pkl', 'wb') as file:
@@ -128,6 +133,70 @@ def post_analysis(state_stack, input_stack, env):
         axs[k].yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
     axs[0].set_title('Input Trajectories')
     axs[-1].set(xlabel='time (sec)')
+
+    # Plot xz trajectory
+    fig2 = plt.figure()
+    ax = fig2.add_subplot(111)
+    ax.plot(np.array(state_stack).T[0, :], np.array(state_stack).T[2, :], label='Trajectory')
+    rect = patches.Rectangle((-0.3, 0.6), 0.6, 0.8, linewidth=1, edgecolor='r', facecolor='none')
+    ax.add_patch(rect)
+
+    plt.show()
+
+def generate_trajectory_gif(state_stack, plan_stack, goals, env, filename='trajectory.gif'):
+    # Initialize the figure and axis
+    fig, ax = plt.subplots()
+
+    # Set the limits of the plot
+    ax.set_xlim(np.min(np.array(state_stack).T[0, :]) - 0.2, np.max(np.array(state_stack).T[0, :]) + 0.2)
+    ax.set_ylim(np.min(np.array(state_stack).T[2, :]) - 0.2, np.max(np.array(state_stack).T[2, :]) + 0.2)
+
+    # Plot the goal positions
+    ax.plot(env.X_GOAL[:, 0], env.X_GOAL[:, 2], linestyle='dotted', color='black')
+
+    # Add the rectangle
+    rect = patches.Rectangle((-0.35, 0.55), 0.7, 0.9, linewidth=1, edgecolor='r', facecolor='none')
+    ax.add_patch(rect)
+
+    # Initialize the circle object which will be updated
+    goal_line, = ax.plot([], [], label='Trajectory', color='green', linewidth=3)
+
+    # Initialize the line object which will be updated
+    line, = ax.plot([], [], label='Trajectory', color='blue')
+    plan_line, = ax.plot([], [], label='Trajectory', color='c')
+
+    # Initialize the drone representation as a line and two circles
+    drone_line, = ax.plot([], [], color='black')
+    drone_circle1 = patches.Circle((0, 0), 0.01, color='black')
+    drone_circle2 = patches.Circle((0, 0), 0.01, color='black')
+    ax.add_patch(drone_circle1)
+    ax.add_patch(drone_circle2)
+
+    # Update function for the animation
+    def update(frame):
+        line.set_data(np.array(state_stack).T[0, :frame], np.array(state_stack).T[2, :frame])
+        plan_line.set_data(np.array(plan_stack).T[:, 0, frame], np.array(plan_stack).T[:, 2, frame])
+        goal_line.set_data(goals[frame, 0, :], goals[frame, 2, :])
+
+        # Update the drone position and orientation
+        x = np.array(state_stack).T[0, frame]
+        z = np.array(state_stack).T[2, frame]
+        theta = np.array(state_stack).T[4, frame]
+
+        # Drone endpoints
+        dx = 0.05 * np.cos(-theta)
+        dz = 0.05 * np.sin(-theta)
+
+        drone_line.set_data([x - dx, x + dx], [z - dz, z + dz])
+        drone_circle1.center = (x - dx, z - dz)
+        drone_circle2.center = (x + dx, z + dz)
+        return line, plan_line, goal_line, drone_line, drone_circle1, drone_circle2
+
+    # Create the animation
+    ani = FuncAnimation(fig, update, frames=len(state_stack) - 1, blit=True)
+
+    # Save the animation as a GIF
+    ani.save(filename, writer=PillowWriter(fps=50))
 
     plt.show()
 

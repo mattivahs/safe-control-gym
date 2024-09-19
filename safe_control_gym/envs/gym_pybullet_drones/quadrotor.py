@@ -432,7 +432,6 @@ class Quadrotor(BaseAviary):
                 disturb_force = [float(disturb_force[0]), 0, float(disturb_force[1])]
             elif self.QUAD_TYPE == QuadType.THREE_D:
                 disturb_force = np.asarray(disturb_force).flatten()
-
         # Advance the simulation.
         super()._advance_simulation(rpm, disturb_force)
         # Standard Gym return.
